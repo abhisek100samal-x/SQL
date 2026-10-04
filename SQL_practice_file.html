@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Practice File</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Inter:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+<style>
+  :root{
+    --bg:#0A0C11;
+    --panel:#141821;
+    --panel-soft:#1B202B;
+    --panel-raised:#20263332;
+    --line:rgba(255,255,255,0.09);
+    --line-strong:rgba(255,255,255,0.16);
+    --ink:#FFFFFF;
+    --ink-dim:rgba(255,255,255,0.72);
+    --ink-faint:rgba(255,255,255,0.5);
+    --amber:#FFB020;
+    --amber-dim:#E0940F;
+    --teal:#2FE0C4;
+    --red:#FF5C6C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 500px at 12% -10%, rgba(255,176,32,0.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(47,224,196,0.08), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+  }
+  ::selection{background:var(--amber);color:#0A0C11;}
+  a{color:var(--amber);font-weight:700;}
+
+  .wrap{max-width:1220px;margin:0 auto;padding:34px 24px 80px;}
+
+  /* ---- top bar ---- */
+  .top-bar{
+    background:linear-gradient(180deg, var(--panel), var(--panel-soft));
+    border:1px solid var(--line);border-radius:16px 16px 0 0;
+    padding:24px 28px 22px;position:relative;overflow:hidden;
+  }
+  .top-bar::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg, var(--amber), var(--teal));
+  }
+  .eyebrow-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--ink-dim);font-weight:700;display:inline-flex;align-items:center;gap:8px;
+  }
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);display:inline-block;}
+
+  .guide-link{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;letter-spacing:0.02em;
+    color:var(--ink);text-decoration:none;border:1px solid var(--line-strong);border-radius:8px;
+    padding:9px 15px;background:var(--panel-soft);transition:border-color .15s, box-shadow .15s, transform .1s;
+  }
+  .guide-link:hover{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber), 0 0 18px rgba(255,176,32,0.35);transform:translateY(-1px);}
+  .guide-link .arrow{color:var(--amber);}
+
+  h1{
+    font-family:'Archivo Expanded',sans-serif;font-weight:800;font-size:30px;
+    margin:0 0 8px;letter-spacing:-0.01em;color:var(--ink);
+  }
+  .subtitle{color:var(--ink-dim);font-weight:600;font-size:14.5px;margin:0;max-width:660px;line-height:1.6;}
+
+  .layout{
+    display:grid;grid-template-columns:270px 1fr;gap:0;
+    background:var(--panel);border:1px solid var(--line);border-top:none;
+    border-radius:0 0 16px 16px;overflow:hidden;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,0.7);
+  }
+  @media (max-width:860px){.layout{grid-template-columns:1fr;}}
+
+  .sidebar{border-right:1px solid var(--line);padding:22px 20px;background:var(--panel-soft);}
+  @media (max-width:860px){.sidebar{border-right:none;border-bottom:1px solid var(--line);}}
+  .side-section{margin-bottom:26px;}
+  .side-section:last-child{margin-bottom:0;}
+  .side-title{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.09em;
+    color:var(--amber);font-weight:700;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);
+  }
+
+  /* schema ledger */
+  .schema-table{margin-bottom:9px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel);}
+  .schema-table summary{
+    cursor:pointer;padding:9px 11px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:700;
+    color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px;
+  }
+  .schema-table summary::-webkit-details-marker{display:none;}
+  .schema-summary-left{display:flex;align-items:center;gap:8px;min-width:0;}
+  .schema-summary-left span.tname{overflow:hidden;text-overflow:ellipsis;}
+  .schema-toggle{color:var(--amber);font-size:13px;flex:none;}
+  .schema-table[open] .schema-toggle{transform:rotate(90deg);display:inline-block;}
+  .insert-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;border:1px solid var(--line-strong);background:var(--panel-soft);
+    color:var(--teal);border-radius:5px;padding:3px 7px;cursor:pointer;flex:none;
+  }
+  .insert-btn:hover{border-color:var(--teal);box-shadow:0 0 10px rgba(47,224,196,0.35);}
+  .schema-cols{padding:3px 11px 11px 29px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:var(--ink-dim);line-height:1.9;border-top:1px solid var(--line);}
+  .schema-cols .pk{color:var(--amber);font-weight:700;}
+  .schema-cols .fk{color:var(--teal);font-weight:700;}
+
+  .qbtn{
+    display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);
+    color:var(--ink);font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;padding:9px 11px;border-radius:8px;
+    margin-bottom:7px;cursor:pointer;transition:border-color .12s, box-shadow .12s, transform .08s;
+  }
+  .qbtn:hover{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber-dim);}
+  .qbtn:active{transform:translateY(1px);}
+  .qbtn .num{color:var(--amber);font-family:'IBM Plex Mono',monospace;margin-right:8px;font-weight:700;}
+
+  .log-empty{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-faint);font-weight:600;}
+  .log-entry{
+    display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;background:transparent;border:none;
+    border-bottom:1px solid var(--line);padding:9px 2px;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+  }
+  .log-entry:last-child{border-bottom:none;}
+  .log-entry:hover{background:rgba(255,176,32,0.07);}
+  .log-mark{flex:none;width:9px;height:9px;border-radius:3px;margin-top:3px;}
+  .log-mark.ok{background:var(--teal);box-shadow:0 0 6px var(--teal);}
+  .log-mark.err{background:var(--red);box-shadow:0 0 6px var(--red);}
+  .log-sql{font-size:11px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .log-meta{font-size:9.5px;font-weight:600;color:var(--ink-faint);}
+
+  /* main */
+  .main{min-width:0;padding:24px 26px;}
+  .editor-frame{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px rgba(255,255,255,0.02) inset;}
+  .CodeMirror{
+    height:auto;min-height:130px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;line-height:1.65;
+    background:var(--panel);color:var(--ink);padding:6px 0;
+  }
+  .CodeMirror-cursor{border-left:2px solid var(--amber);}
+  .cm-s-manifest .cm-keyword{color:var(--amber);font-weight:700;}
+  .cm-s-manifest .cm-string{color:var(--teal);font-weight:700;}
+  .cm-s-manifest .cm-number{color:#FFFFFF;}
+  .cm-s-manifest .cm-operator{color:var(--ink-dim);}
+  .cm-s-manifest .cm-comment{color:var(--ink-faint);font-style:italic;}
+  .cm-s-manifest .cm-variable-2, .cm-s-manifest .cm-def{color:#FFD37A;}
+
+  .toolbar{display:flex;align-items:center;gap:14px;margin:14px 0 20px;flex-wrap:wrap;}
+  #runBtn{
+    background:linear-gradient(135deg, var(--amber), var(--amber-dim));color:#0A0C11;border:none;
+    font-family:'Archivo Expanded',sans-serif;font-weight:800;
+    font-size:13px;padding:11px 22px;border-radius:9px;cursor:pointer;transition:transform .08s, box-shadow .15s;
+    letter-spacing:0.01em;box-shadow:0 8px 22px -8px rgba(255,176,32,0.6);
+  }
+  #runBtn:hover{box-shadow:0 10px 26px -6px rgba(255,176,32,0.75);transform:translateY(-1px);}
+  #runBtn:active{transform:translateY(1px);}
+  #runBtn:disabled{opacity:0.4;cursor:default;box-shadow:none;}
+  #resetBtn{
+    background:var(--panel-soft);border:1px solid var(--line-strong);color:var(--ink);font-family:'Inter',sans-serif;
+    font-weight:700;font-size:12px;padding:10px 16px;border-radius:9px;cursor:pointer;transition:border-color .12s;
+  }
+  #resetBtn:hover{border-color:var(--teal);box-shadow:0 0 12px rgba(47,224,196,0.25);}
+  .hint{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--ink-faint);}
+  .status{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;letter-spacing:0.02em;}
+  .status.ok{color:var(--teal);}
+  .status.err{color:var(--red);}
+
+  .results-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-height:130px;}
+  .results-head{
+    padding:12px 16px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--ink-dim);font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel-soft);
+  }
+  .results-label{text-transform:uppercase;letter-spacing:0.07em;color:var(--amber);}
+  .results-actions{display:flex;align-items:center;gap:14px;}
+  #csvBtn{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;background:transparent;border:1px solid var(--line-strong);
+    color:var(--teal);border-radius:6px;padding:5px 10px;cursor:pointer;
+  }
+  #csvBtn:hover{border-color:var(--teal);box-shadow:0 0 10px rgba(47,224,196,0.3);}
+  #csvBtn:disabled{opacity:0.35;cursor:default;box-shadow:none;}
+
+  .table-scroll{overflow:auto;max-height:440px;}
+  table.results{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  table.results th{
+    background:var(--panel-soft);color:var(--amber);text-align:left;padding:10px 13px;font-weight:700;
+    position:sticky;top:0;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none;
+  }
+  table.results th:hover{color:var(--ink);}
+  table.results th .arrow{color:var(--teal);font-size:10px;margin-left:4px;}
+  table.results td{padding:9px 13px;border-bottom:1px solid var(--line);color:var(--ink);font-weight:600;white-space:nowrap;}
+  table.results tbody tr:nth-child(even) td{background:rgba(255,255,255,0.02);}
+  table.results tbody tr:hover td{background:rgba(255,176,32,0.08);}
+  .empty-msg{padding:36px;text-align:center;color:var(--ink-dim);font-weight:700;font-size:13px;font-family:'IBM Plex Mono',monospace;}
+  .error-msg{padding:24px;color:var(--red);font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12.5px;line-height:1.75;}
+  .error-msg .tag{display:inline-block;border:1.5px solid var(--red);color:var(--red);font-weight:800;
+    font-size:10.5px;letter-spacing:0.06em;padding:2px 8px;border-radius:4px;margin-bottom:9px;}
+  .error-tip{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);color:var(--ink);font-weight:600;}
+  .error-tip strong{color:var(--amber);}
+  .loading{padding:44px;text-align:center;color:var(--ink-dim);font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:13px;}
+
+  /* ---- guide section (SQL Queries) ---- */
+  html{scroll-behavior:smooth;}
+  .subtitle code{color:var(--amber);}
+  .lab-link{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;letter-spacing:0.02em;
+    color:var(--ink);text-decoration:none;border:1px solid var(--line-strong);border-radius:8px;
+    padding:9px 15px;background:var(--panel-soft);transition:border-color .15s, box-shadow .15s, transform .1s;
+  }
+  .lab-link:hover{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal), 0 0 18px rgba(47,224,196,0.3);transform:translateY(-1px);}
+
+  #lab, #guide{scroll-margin-top:16px;}
+  #guide{display:block;margin-top:34px;}
+
+  .g-layout{
+    display:grid;grid-template-columns:250px 1fr;gap:0;
+    background:var(--panel);border:1px solid var(--line);border-top:none;
+    border-radius:0 0 16px 16px;overflow:hidden;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,0.7);
+  }
+  @media (max-width:860px){.g-layout{grid-template-columns:1fr;}}
+
+  .toc{border-right:1px solid var(--line);padding:22px 20px;background:var(--panel-soft);align-self:start;position:sticky;top:0;max-height:100vh;overflow:auto;}
+  @media (max-width:860px){.toc{position:static;border-right:none;border-bottom:1px solid var(--line);max-height:none;}}
+  .toc-title{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.09em;
+    color:var(--amber);font-weight:700;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);
+  }
+  .toc-group{margin-bottom:18px;}
+  .toc-group:last-child{margin-bottom:0;}
+  .toc-group-label{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);font-weight:700;margin:0 0 7px;}
+  .toc a{
+    display:block;font-size:12.5px;font-weight:700;color:var(--ink);text-decoration:none;padding:5px 0 5px 10px;
+    border-left:2px solid transparent;line-height:1.4;
+  }
+  .toc a:hover{color:var(--amber);border-left-color:var(--amber);}
+  .toc a.join-link{color:var(--ink-dim);font-size:12px;}
+  .toc a.join-link:hover{color:var(--teal);border-left-color:var(--teal);}
+
+  .g-main{min-width:0;padding:30px 36px;}
+  section.doc{margin-bottom:46px;scroll-margin-top:20px;}
+  section.doc:last-child{margin-bottom:6px;}
+  .doc-kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.09em;color:var(--amber);font-weight:700;margin:0 0 8px;}
+  .doc h2{font-family:'Archivo Expanded',sans-serif;font-weight:800;font-size:22px;margin:0 0 12px;color:var(--ink);}
+  .doc h3{font-family:'Archivo Expanded',sans-serif;font-weight:700;font-size:17px;margin:24px 0 10px;color:var(--ink);}
+  .doc p{font-size:14px;font-weight:600;line-height:1.75;color:var(--ink-dim);margin:0 0 13px;}
+  .doc p.soft{color:var(--ink-faint);}
+  .doc ul{margin:0 0 15px;padding-left:20px;}
+  .doc li{font-size:14px;font-weight:600;line-height:1.75;color:var(--ink-dim);margin-bottom:5px;}
+  .doc code{font-family:'IBM Plex Mono',monospace;font-weight:700;background:rgba(255,176,32,0.14);color:var(--amber);padding:2px 6px;border-radius:4px;font-size:12.5px;}
+
+  pre.code{
+    background:#0D1016;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow:auto;
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;line-height:1.7;margin:0 0 16px;
+  }
+  pre.code .kw{color:var(--amber);font-weight:700;}
+  pre.code .str{color:var(--teal);font-weight:700;}
+  pre.code .cm{color:var(--ink-faint);font-style:italic;}
+  pre.code .col{color:#7FC4FF;}
+
+  .result-preview{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 0 18px;background:var(--panel);}
+  .result-preview .rp-head{background:var(--panel-soft);font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink-faint);font-weight:700;padding:7px 13px;border-bottom:1px solid var(--line);}
+  table.rp{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  table.rp th{background:var(--panel-soft);text-align:left;padding:7px 11px;border-bottom:1px solid var(--line);color:var(--amber);font-weight:700;white-space:nowrap;}
+  table.rp td{padding:7px 11px;border-bottom:1px solid var(--line);color:var(--ink);font-weight:600;white-space:nowrap;}
+  table.rp tr:last-child td{border-bottom:none;}
+  table.rp td.null{color:var(--ink-faint);font-style:italic;}
+
+  .callout{border-left:3px solid var(--amber);background:rgba(255,176,32,0.08);border-radius:0 8px 8px 0;padding:12px 16px;margin:0 0 18px;}
+  .callout p{margin:0;font-size:13px;font-weight:600;color:var(--ink);}
+  .callout p strong{color:var(--amber);}
+
+  .join-row{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;}
+  .join-card{flex:1;min-width:230px;border:1px solid var(--line);border-radius:10px;padding:18px;background:var(--panel-soft);}
+  .join-card h4{font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;margin:12px 0 7px;color:var(--ink);}
+  .join-card p{font-size:12.5px;font-weight:600;color:var(--ink-dim);margin:0;line-height:1.65;}
+  .venn{display:block;margin:0 auto;}
+  .venn .circA{fill:rgba(47,224,196,0.55);}
+  .venn .circB{fill:rgba(255,176,32,0.55);}
+  .venn .circBoth{fill:rgba(255,214,140,0.6);}
+
+  .back-top{display:inline-block;margin-top:28px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;color:var(--ink-faint);text-decoration:none;}
+  .back-top:hover{color:var(--amber);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section id="lab">
+  <div class="top-bar">
+    <div class="eyebrow-row">
+      <span class="eyebrow"><span class="live-dot"></span>Lab-01 · SQL-QC · Dark Store Ops</span>
+      <a class="guide-link" href="#guide">SQL Guide <span class="arrow">↓</span></a>
+    </div>
+    <h1>SQL Practice File</h1>
+    <p class="subtitle">A dark-store dataset — customers, orders, products and pick-up stores — for practicing SQL the way analysts actually query it. SQLite runs entirely in your browser.</p>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-section">
+        <p class="side-title">Manifest / Tables</p>
+        <div id="schemaList"></div>
+      </div>
+      <div class="side-section">
+        <p class="side-title">Sample Queries</p>
+        <div id="sampleQueries"></div>
+      </div>
+      <div class="side-section">
+        <p class="side-title">Query Log</p>
+        <div id="queryLog"><p class="log-empty">Nothing run yet.</p></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="editor-frame">
+        <textarea id="editor">SELECT * FROM customers;</textarea>
+      </div>
+      <div class="toolbar">
+        <button id="runBtn" disabled>Run query</button>
+        <button id="resetBtn">Reset data</button>
+        <span class="hint">Ctrl/Cmd + Enter to run · Ctrl + Space to autocomplete</span>
+        <span class="status" id="statusMsg"></span>
+      </div>
+      <div class="results-wrap">
+        <div class="results-head">
+          <span class="results-label" id="resultsLabel">Results</span>
+          <div class="results-actions">
+            <span id="resultsMeta"></span>
+            <button id="csvBtn" disabled>Export CSV</button>
+          </div>
+        </div>
+        <div class="table-scroll" id="resultsContainer">
+          <div class="loading" id="loadingMsg">Loading SQLite engine…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="guide">
+  <div class="top-bar">
+    <div class="eyebrow-row">
+      <span class="eyebrow">Lab-01 · SQL-QC · Field Manual</span>
+      <a class="lab-link" href="#lab">&larr; Back to the Lab</a>
+    </div>
+    <h1>SQL Queries</h1>
+    <p class="subtitle">Everything you need to read and write SQL against the QuickCart dark-store dataset — from your first <code>SELECT</code> to every flavor of <code>JOIN</code>. Every example below runs as-is in the Lab.</p>
+  </div>
+
+  <div class="g-layout">
+    <nav class="toc" id="toc">
+      <p class="toc-title">Contents</p>
+      <div class="toc-group">
+        <p class="toc-group-label">Basics</p>
+        <a href="#select">Selecting columns</a>
+        <a href="#where">Filtering with WHERE</a>
+        <a href="#order-limit">Sorting &amp; limiting</a>
+        <a href="#alias">Aliases</a>
+      </div>
+      <div class="toc-group">
+        <p class="toc-group-label">Aggregating</p>
+        <a href="#agg">Aggregate functions</a>
+        <a href="#groupby">GROUP BY &amp; HAVING</a>
+      </div>
+      <div class="toc-group">
+        <p class="toc-group-label">Joins</p>
+        <a href="#joins-intro">What is a JOIN?</a>
+        <a href="#inner-join" class="join-link">INNER JOIN</a>
+        <a href="#left-join" class="join-link">LEFT (OUTER) JOIN</a>
+        <a href="#right-join" class="join-link">RIGHT (OUTER) JOIN</a>
+        <a href="#full-join" class="join-link">FULL OUTER JOIN</a>
+        <a href="#cross-join" class="join-link">CROSS JOIN</a>
+        <a href="#self-join" class="join-link">SELF JOIN</a>
+        <a href="#multi-join" class="join-link">Joining 3+ tables</a>
+      </div>
+      <div class="toc-group">
+        <p class="toc-group-label">Advanced</p>
+        <a href="#subqueries">Subqueries</a>
+        <a href="#cte">CTEs (WITH)</a>
+        <a href="#window">Window functions</a>
+        <a href="#case">CASE expressions</a>
+      </div>
+    </nav>
+
+    <div class="g-main">
+
+      <section class="doc" id="select">
+        <p class="doc-kicker">Basics · 01</p>
+        <h2>Selecting columns</h2>
+        <p>Every query starts by naming which columns you want, and which table they come from. Use <code>*</code> to grab every column, or list only the ones you need.</p>
+        <pre class="code"><span class="kw">SELECT</span> name, city
+<span class="kw">FROM</span> customers;</pre>
+        <div class="result-preview">
+          <div class="rp-head">Result</div>
+          <table class="rp"><thead><tr><th>name</th><th>city</th></tr></thead>
+          <tbody>
+            <tr><td>Aarav Shah</td><td>Mumbai</td></tr>
+            <tr><td>Diya Mehta</td><td>Pune</td></tr>
+            <tr><td>Kabir Nair</td><td>Navi Mumbai</td></tr>
+          </tbody></table>
+        </div>
+        <p class="soft">Add <code>DISTINCT</code> right after <code>SELECT</code> to drop duplicate rows — useful for questions like "which cities do we operate in?"</p>
+        <pre class="code"><span class="kw">SELECT DISTINCT</span> city <span class="kw">FROM</span> customers;</pre>
+      </section>
+
+      <section class="doc" id="where">
+        <p class="doc-kicker">Basics · 02</p>
+        <h2>Filtering with WHERE</h2>
+        <p><code>WHERE</code> keeps only the rows that match a condition. It runs before any sorting or grouping.</p>
+        <pre class="code"><span class="kw">SELECT</span> order_id, total_amount
+<span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> total_amount > 300;</pre>
+        <p>Combine conditions with <code>AND</code> / <code>OR</code>, match text patterns with <code>LIKE</code> (<code>%</code> matches any run of characters), and check ranges with <code>BETWEEN</code> or membership with <code>IN</code>.</p>
+        <pre class="code"><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> products
+<span class="kw">WHERE</span> category <span class="kw">IN</span> (<span class="str">'Dairy'</span>, <span class="str">'Snacks'</span>)
+  <span class="kw">AND</span> price <span class="kw">BETWEEN</span> 20 <span class="kw">AND</span> 60;</pre>
+        <div class="callout"><p><strong>Careful with NULL.</strong> A missing value is never "equal" to anything, not even another NULL. Use <code>column IS NULL</code> or <code>column IS NOT NULL</code> instead of <code>= NULL</code>.</p></div>
+      </section>
+
+      <section class="doc" id="order-limit">
+        <p class="doc-kicker">Basics · 03</p>
+        <h2>Sorting &amp; limiting</h2>
+        <p><code>ORDER BY</code> sorts your results; add <code>DESC</code> for highest-to-lowest (the default is ascending). <code>LIMIT</code> caps how many rows come back — handy for "top 5" style questions.</p>
+        <pre class="code"><span class="kw">SELECT</span> name, price
+<span class="kw">FROM</span> products
+<span class="kw">ORDER BY</span> price <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 5;</pre>
+      </section>
+
+      <section class="doc" id="alias">
+        <p class="doc-kicker">Basics · 04</p>
+        <h2>Aliases</h2>
+        <p>Give a column or table a temporary name with <code>AS</code> — it makes results more readable and is essential once you start joining tables and need short labels to refer back to them.</p>
+        <pre class="code"><span class="kw">SELECT</span> name <span class="kw">AS</span> product_name, price <span class="kw">AS</span> selling_price
+<span class="kw">FROM</span> products <span class="kw">AS</span> p;</pre>
+        <p class="soft">The <code>AS</code> keyword is optional — <code>orders o</code> works the same as <code>orders AS o</code>. You'll see the short form everywhere once you get to joins below.</p>
+      </section>
+
+      <section class="doc" id="agg">
+        <p class="doc-kicker">Aggregating · 05</p>
+        <h2>Aggregate functions</h2>
+        <p>Aggregate functions collapse many rows into one summary value: <code>COUNT</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, and <code>MAX</code>.</p>
+        <pre class="code"><span class="kw">SELECT</span> COUNT(*) <span class="kw">AS</span> total_orders,
+       ROUND(AVG(total_amount), 2) <span class="kw">AS</span> avg_order_value
+<span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> status = <span class="str">'Delivered'</span>;</pre>
+      </section>
+
+      <section class="doc" id="groupby">
+        <p class="doc-kicker">Aggregating · 06</p>
+        <h2>GROUP BY &amp; HAVING</h2>
+        <p><code>GROUP BY</code> buckets rows that share a value, then runs your aggregate functions separately per bucket — e.g. "how many products, and what's the average price, per category?"</p>
+        <pre class="code"><span class="kw">SELECT</span> category, COUNT(*) <span class="kw">AS</span> items, ROUND(AVG(price), 2) <span class="kw">AS</span> avg_price
+<span class="kw">FROM</span> products
+<span class="kw">GROUP BY</span> category
+<span class="kw">ORDER BY</span> items <span class="kw">DESC</span>;</pre>
+        <p><code>WHERE</code> filters rows before grouping; <code>HAVING</code> filters groups after aggregation — use it when your condition involves an aggregate function like <code>COUNT</code> or <code>SUM</code>.</p>
+        <pre class="code"><span class="kw">SELECT</span> category, COUNT(*) <span class="kw">AS</span> items
+<span class="kw">FROM</span> products
+<span class="kw">GROUP BY</span> category
+<span class="kw">HAVING</span> COUNT(*) > 3;</pre>
+      </section>
+
+      <section class="doc" id="joins-intro">
+        <p class="doc-kicker">Joins · 07</p>
+        <h2>What is a JOIN?</h2>
+        <p>QuickCart's data is split across separate tables — <code>customers</code>, <code>orders</code>, <code>dark_stores</code>, <code>products</code>, <code>order_items</code> — so that each fact is stored once. A <strong>JOIN</strong> stitches rows from two tables back together for a query, matched on a shared value (usually a primary key in one table and a foreign key in the other).</p>
+        <p>Every join needs an <code>ON</code> clause that says how to match rows:</p>
+        <pre class="code"><span class="kw">SELECT</span> o.order_id, c.name, o.total_amount
+<span class="kw">FROM</span> orders o
+<span class="kw">JOIN</span> customers c <span class="kw">ON</span> o.customer_id = c.customer_id
+<span class="kw">ORDER BY</span> o.total_amount <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 5;</pre>
+        <p class="soft">Here <code>o</code> and <code>c</code> are aliases for <code>orders</code> and <code>customers</code>. The <code>ON</code> clause says: "match each order to the customer whose <code>customer_id</code> equals the order's <code>customer_id</code>." The type of join you pick decides what happens to rows on either side that <em>don't</em> find a match.</p>
+      </section>
+
+      <section class="doc" id="inner-join">
+        <h3>INNER JOIN</h3>
+        <div class="join-row">
+          <div class="join-card">
+            <svg class="venn" viewBox="0 0 200 120" width="200" height="120">
+              <circle class="circA" cx="80" cy="60" r="45"></circle>
+              <circle class="circB" cx="120" cy="60" r="45"></circle>
+            </svg>
+            <h4>Keeps only matches</h4>
+            <p>Only rows that exist in <strong>both</strong> tables come back. Orders with no matching customer (or customers with no orders) are dropped.</p>
+          </div>
+          <div style="flex:1.3;min-width:260px;">
+            <p>The plain <code>JOIN</code> keyword defaults to <code>INNER JOIN</code> — it's the one you'll use most often.</p>
+            <pre class="code"><span class="kw">SELECT</span> o.order_id, c.name, s.store_name
+<span class="kw">FROM</span> orders o
+<span class="kw">INNER JOIN</span> customers c <span class="kw">ON</span> o.customer_id = c.customer_id
+<span class="kw">INNER JOIN</span> dark_stores s <span class="kw">ON</span> o.store_id = s.store_id;</pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc" id="left-join">
+        <h3>LEFT (OUTER) JOIN</h3>
+        <div class="join-row">
+          <div class="join-card">
+            <svg class="venn" viewBox="0 0 200 120" width="200" height="120">
+              <circle class="circA" cx="80" cy="60" r="45"></circle>
+              <circle class="circB" cx="120" cy="60" r="45" fill="none" stroke="var(--ink-soft)" stroke-dasharray="3 3"></circle>
+            </svg>
+            <h4>Keeps everything on the left</h4>
+            <p>Every row from the first (left) table is kept, even if nothing matches on the right — unmatched columns come back as <code>NULL</code>.</p>
+          </div>
+          <div style="flex:1.3;min-width:260px;">
+            <p>Perfect for "show me all X, along with any related Y" — including customers who haven't ordered yet.</p>
+            <pre class="code"><span class="kw">SELECT</span> c.name, COUNT(o.order_id) <span class="kw">AS</span> orders_placed
+<span class="kw">FROM</span> customers c
+<span class="kw">LEFT JOIN</span> orders o <span class="kw">ON</span> c.customer_id = o.customer_id
+<span class="kw">GROUP BY</span> c.name
+<span class="kw">ORDER BY</span> orders_placed <span class="kw">ASC</span>;</pre>
+            <p class="soft">Any customer with zero orders still shows up here, with <code>orders_placed = 0</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc" id="right-join">
+        <h3>RIGHT (OUTER) JOIN</h3>
+        <div class="join-row">
+          <div class="join-card">
+            <svg class="venn" viewBox="0 0 200 120" width="200" height="120">
+              <circle class="circA" cx="80" cy="60" r="45" fill="none" stroke="var(--ink-soft)" stroke-dasharray="3 3"></circle>
+              <circle class="circB" cx="120" cy="60" r="45"></circle>
+            </svg>
+            <h4>Keeps everything on the right</h4>
+            <p>The mirror image of <code>LEFT JOIN</code>: every row from the second (right) table is kept, matched or not.</p>
+          </div>
+          <div style="flex:1.3;min-width:260px;">
+            <pre class="code"><span class="kw">SELECT</span> s.store_name, o.order_id
+<span class="kw">FROM</span> orders o
+<span class="kw">RIGHT JOIN</span> dark_stores s <span class="kw">ON</span> o.store_id = s.store_id;</pre>
+            <p class="soft">In practice, most people just swap the table order and write a <code>LEFT JOIN</code> instead — it reads the same way and is supported by more database engines. (Note: SQLite added <code>RIGHT JOIN</code> support in version 3.39 — this Lab's engine supports it.)</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc" id="full-join">
+        <h3>FULL OUTER JOIN</h3>
+        <div class="join-row">
+          <div class="join-card">
+            <svg class="venn" viewBox="0 0 200 120" width="200" height="120">
+              <circle class="circA" cx="80" cy="60" r="45"></circle>
+              <circle class="circB" cx="120" cy="60" r="45"></circle>
+            </svg>
+            <h4>Keeps everything, both sides</h4>
+            <p>Combines <code>LEFT</code> and <code>RIGHT</code>: every row from both tables appears, with <code>NULL</code>s wherever there's no match on the other side.</p>
+          </div>
+          <div style="flex:1.3;min-width:260px;">
+            <pre class="code"><span class="kw">SELECT</span> c.name, o.order_id
+<span class="kw">FROM</span> customers c
+<span class="kw">FULL OUTER JOIN</span> orders o <span class="kw">ON</span> c.customer_id = o.customer_id;</pre>
+            <p class="soft">Useful for spotting mismatches on either side at once — e.g. customers with no orders, sitting in the same result as (hypothetically) orphaned orders with no customer.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc" id="cross-join">
+        <h3>CROSS JOIN</h3>
+        <div class="join-row">
+          <div class="join-card">
+            <svg class="venn" viewBox="0 0 200 120" width="200" height="120">
+              <circle class="circA" cx="70" cy="60" r="34"></circle>
+              <circle class="circB" cx="130" cy="60" r="34"></circle>
+            </svg>
+            <h4>Every row × every row</h4>
+            <p>No <code>ON</code> condition — pairs every row from the first table with every row from the second. 4 stores × 20 products = 80 rows.</p>
+          </div>
+          <div style="flex:1.3;min-width:260px;">
+            <pre class="code"><span class="kw">SELECT</span> s.store_name, p.name
+<span class="kw">FROM</span> dark_stores s
+<span class="kw">CROSS JOIN</span> products p;</pre>
+            <p class="soft">Rarely used on real data directly, but handy for generating every possible combination — e.g. a full store × product grid to check stock coverage.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc" id="self-join">
+        <h3>SELF JOIN</h3>
+        <p>Not a different keyword — just a regular join where a table is joined to <em>itself</em>, using two different aliases. Useful for comparing rows within the same table.</p>
+        <pre class="code"><span class="kw">SELECT</span> a.name <span class="kw">AS</span> customer_1, b.name <span class="kw">AS</span> customer_2, a.city
+<span class="kw">FROM</span> customers a
+<span class="kw">JOIN</span> customers b
+  <span class="kw">ON</span> a.city = b.city <span class="kw">AND</span> a.customer_id < b.customer_id;</pre>
+        <p class="soft">This finds pairs of different customers who live in the same city. The <code>a.customer_id &lt; b.customer_id</code> condition stops each pair from being listed twice.</p>
+      </section>
+
+      <section class="doc" id="multi-join">
+        <h3>Joining 3+ tables</h3>
+        <p>Chain as many joins as you need — each one just needs its own <code>ON</code> clause. This is how you'd answer "what did each customer actually buy?", pulling from <code>orders</code>, <code>order_items</code>, and <code>products</code> together.</p>
+        <pre class="code"><span class="kw">SELECT</span> c.name, p.name <span class="kw">AS</span> product, oi.quantity, o.order_time
+<span class="kw">FROM</span> orders o
+<span class="kw">JOIN</span> customers c   <span class="kw">ON</span> o.customer_id = c.customer_id
+<span class="kw">JOIN</span> order_items oi <span class="kw">ON</span> oi.order_id = o.order_id
+<span class="kw">JOIN</span> products p    <span class="kw">ON</span> p.product_id = oi.product_id
+<span class="kw">ORDER BY</span> o.order_time;</pre>
+      </section>
+
+      <section class="doc" id="subqueries">
+        <p class="doc-kicker">Advanced · 08</p>
+        <h2>Subqueries</h2>
+        <p>A query nested inside another, usually in parentheses. It runs first, and its result is used by the outer query — often with <code>IN</code>, <code>=</code>, or as a stand-in for a table.</p>
+        <pre class="code"><span class="kw">SELECT</span> name
+<span class="kw">FROM</span> customers
+<span class="kw">WHERE</span> customer_id <span class="kw">IN</span> (
+  <span class="kw">SELECT</span> customer_id
+  <span class="kw">FROM</span> orders
+  <span class="kw">WHERE</span> total_amount > 400
+);</pre>
+        <p class="soft">This finds every customer who has placed at least one order over 400 — without ever writing a JOIN.</p>
+      </section>
+
+      <section class="doc" id="cte">
+        <p class="doc-kicker">Advanced · 09</p>
+        <h2>CTEs (WITH)</h2>
+        <p>A Common Table Expression names a subquery up front with <code>WITH</code>, so you can reference it like a temporary table later in the same statement. Great for breaking a complex query into readable steps.</p>
+        <pre class="code"><span class="kw">WITH</span> store_totals <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> store_id, SUM(total_amount) <span class="kw">AS</span> revenue
+  <span class="kw">FROM</span> orders
+  <span class="kw">WHERE</span> status = <span class="str">'Delivered'</span>
+  <span class="kw">GROUP BY</span> store_id
+)
+<span class="kw">SELECT</span> s.store_name, st.revenue
+<span class="kw">FROM</span> store_totals st
+<span class="kw">JOIN</span> dark_stores s <span class="kw">ON</span> s.store_id = st.store_id
+<span class="kw">ORDER BY</span> st.revenue <span class="kw">DESC</span>;</pre>
+      </section>
+
+      <section class="doc" id="window">
+        <p class="doc-kicker">Advanced · 10</p>
+        <h2>Window functions</h2>
+        <p>Unlike <code>GROUP BY</code>, a window function keeps every row while still letting you compute something across a related set of rows, using <code>OVER (...)</code>. <code>PARTITION BY</code> restarts the calculation per group.</p>
+        <pre class="code"><span class="kw">SELECT</span> customer_id, order_id, total_amount,
+       RANK() <span class="kw">OVER</span> (
+         <span class="kw">PARTITION BY</span> customer_id
+         <span class="kw">ORDER BY</span> total_amount <span class="kw">DESC</span>
+       ) <span class="kw">AS</span> rank_within_customer
+<span class="kw">FROM</span> orders;</pre>
+        <p class="soft">This ranks each customer's own orders from biggest to smallest, without collapsing the rows the way <code>GROUP BY</code> would.</p>
+      </section>
+
+      <section class="doc" id="case">
+        <p class="doc-kicker">Advanced · 11</p>
+        <h2>CASE expressions</h2>
+        <p><code>CASE</code> is SQL's inline if/else — evaluate conditions in order and return the first matching result. Useful for bucketing values on the fly.</p>
+        <pre class="code"><span class="kw">SELECT</span> order_id, delivery_minutes,
+  <span class="kw">CASE</span>
+    <span class="kw">WHEN</span> delivery_minutes <= 10 <span class="kw">THEN</span> <span class="str">'Fast'</span>
+    <span class="kw">WHEN</span> delivery_minutes <= 15 <span class="kw">THEN</span> <span class="str">'On time'</span>
+    <span class="kw">ELSE</span> <span class="str">'Slow'</span>
+  <span class="kw">END</span> <span class="kw">AS</span> speed_bucket
+<span class="kw">FROM</span> orders;</pre>
+        <a class="back-top" href="#toc">&uarr; Back to top</a>
+      </section>
+
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+<script>
+const SEED_SQL = `
+CREATE TABLE customers (
+  customer_id INTEGER PRIMARY KEY,
+  name TEXT,
+  city TEXT,
+  signup_date DATE
+);
+CREATE TABLE dark_stores (
+  store_id INTEGER PRIMARY KEY,
+  store_name TEXT,
+  city TEXT
+);
+CREATE TABLE products (
+  product_id INTEGER PRIMARY KEY,
+  name TEXT,
+  category TEXT,
+  price REAL,
+  mrp REAL
+);
+CREATE TABLE orders (
+  order_id INTEGER PRIMARY KEY,
+  customer_id INTEGER,
+  store_id INTEGER,
+  order_time DATETIME,
+  delivery_minutes INTEGER,
+  status TEXT,
+  total_amount REAL,
+  FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+  FOREIGN KEY (store_id) REFERENCES dark_stores(store_id)
+);
+CREATE TABLE order_items (
+  order_item_id INTEGER PRIMARY KEY,
+  order_id INTEGER,
+  product_id INTEGER,
+  quantity INTEGER,
+  price_at_order REAL,
+  FOREIGN KEY (order_id) REFERENCES orders(order_id),
+  FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+INSERT INTO customers (customer_id, name, city, signup_date) VALUES
+(1,'Aarav Shah','Mumbai','2024-02-11'),
+(2,'Diya Mehta','Pune','2024-03-05'),
+(3,'Kabir Nair','Navi Mumbai','2024-01-19'),
+(4,'Ishaan Rao','Thane','2024-04-22'),
+(5,'Sanya Kapoor','Mumbai','2024-05-30'),
+(6,'Vivaan Joshi','Pune','2024-02-14'),
+(7,'Myra Iyer','Navi Mumbai','2024-06-01'),
+(8,'Reyansh Desai','Mumbai','2024-03-27'),
+(9,'Anaya Pillai','Thane','2024-05-09'),
+(10,'Arjun Kulkarni','Pune','2024-01-03');
+
+INSERT INTO dark_stores (store_id, store_name, city) VALUES
+(1,'QuickCart Bandra','Mumbai'),
+(2,'QuickCart Baner','Pune'),
+(3,'QuickCart Nerul','Navi Mumbai'),
+(4,'QuickCart Ghodbunder','Thane');
+
+INSERT INTO products (product_id, name, category, price, mrp) VALUES
+(1,'Amul Toned Milk 500ml','Dairy',28,30),
+(2,'Brown Eggs (6 pc)','Dairy',54,60),
+(3,'Britannia Bread','Dairy',45,48),
+(4,'Lays Classic 52g','Snacks',20,20),
+(5,'Haldiram Bhujia 200g','Snacks',65,70),
+(6,'Oreo Biscuit 120g','Snacks',35,40),
+(7,'Coca-Cola 750ml','Beverages',40,45),
+(8,'Real Orange Juice 1L','Beverages',110,120),
+(9,'Tata Tea Gold 250g','Beverages',140,150),
+(10,'Banana Dozen','Fruits & Vegetables',48,50),
+(11,'Onion 1kg','Fruits & Vegetables',32,35),
+(12,'Tomato 1kg','Fruits & Vegetables',28,30),
+(13,'Apple Shimla 1kg','Fruits & Vegetables',160,180),
+(14,'Colgate Strong Teeth 150g','Personal Care',89,95),
+(15,'Dove Soap 100g','Personal Care',52,55),
+(16,'Head & Shoulders 180ml','Personal Care',175,190),
+(17,'Vim Dishwash Bar','Household',20,22),
+(18,'Surf Excel 1kg','Household',135,145),
+(19,'Harpic 500ml','Household',99,110),
+(20,'Maggi Noodles 4-pack','Snacks',56,60);
+
+INSERT INTO orders (order_id, customer_id, store_id, order_time, delivery_minutes, status, total_amount) VALUES
+(1,1,1,'2025-06-01 09:15:00',8,'Delivered',148),
+(2,2,2,'2025-06-01 10:02:00',12,'Delivered',285),
+(3,3,3,'2025-06-01 11:30:00',7,'Delivered',89),
+(4,4,4,'2025-06-01 12:45:00',15,'Delivered',412),
+(5,5,1,'2025-06-02 08:20:00',9,'Delivered',176),
+(6,1,1,'2025-06-02 18:10:00',11,'Delivered',330),
+(7,6,2,'2025-06-02 19:05:00',6,'Delivered',65),
+(8,7,3,'2025-06-03 09:40:00',14,'Delivered',540),
+(9,8,1,'2025-06-03 13:15:00',10,'Cancelled',0),
+(10,9,4,'2025-06-03 20:00:00',8,'Delivered',210),
+(11,3,3,'2025-06-04 10:10:00',7,'Delivered',124),
+(12,2,2,'2025-06-04 11:25:00',13,'Delivered',390),
+(13,10,2,'2025-06-04 14:50:00',9,'Delivered',175),
+(14,1,1,'2025-06-05 09:00:00',10,'Delivered',96),
+(15,5,1,'2025-06-05 16:40:00',12,'Delivered',248),
+(16,4,4,'2025-06-06 08:55:00',16,'Delivered',520),
+(17,7,3,'2025-06-06 12:30:00',7,'Delivered',88),
+(18,6,2,'2025-06-06 19:15:00',10,'Cancelled',0),
+(19,9,4,'2025-06-07 10:05:00',9,'Delivered',150),
+(20,8,1,'2025-06-07 17:20:00',11,'Delivered',362),
+(21,3,3,'2025-06-08 09:30:00',6,'Delivered',72),
+(22,10,2,'2025-06-08 13:45:00',14,'Delivered',298),
+(23,2,2,'2025-06-09 11:00:00',12,'Delivered',210),
+(24,1,1,'2025-06-09 20:10:00',10,'Delivered',184),
+(25,5,1,'2025-06-10 09:25:00',8,'Delivered',126),
+(26,7,3,'2025-06-10 15:35:00',9,'Delivered',445),
+(27,4,4,'2025-06-11 10:40:00',18,'Delivered',310),
+(28,9,4,'2025-06-11 18:50:00',7,'Delivered',95),
+(29,6,2,'2025-06-12 09:05:00',11,'Delivered',260),
+(30,8,1,'2025-06-12 19:30:00',13,'Delivered',408);
+
+INSERT INTO order_items (order_item_id, order_id, product_id, quantity, price_at_order) VALUES
+(1,1,4,2,20),(2,1,1,1,28),(3,1,7,1,40),(4,1,17,3,20),
+(5,2,9,1,140),(6,2,13,1,160),
+(7,3,4,1,20),(8,3,6,2,35),
+(9,4,18,1,135),(10,4,19,1,99),(11,4,8,1,110),(12,4,5,1,65),
+(13,5,10,1,48),(14,5,11,2,32),(15,5,12,2,28),
+(16,6,16,1,175),(17,6,14,1,89),(18,6,15,1,52),
+(19,7,4,2,20),(20,7,17,1,20),
+(21,8,9,2,140),(22,8,13,1,160),(23,8,8,1,110),(24,8,5,1,65),
+(25,10,18,1,135),(26,10,19,1,99),
+(27,11,10,1,48),(28,11,11,2,32),
+(29,12,16,1,175),(30,12,9,1,140),(31,12,8,1,110),
+(32,13,14,1,89),(33,13,15,1,52),(34,13,4,1,20),
+(35,14,1,1,28),(36,14,3,1,45),(37,14,6,1,35),
+(38,15,8,1,110),(39,15,9,1,140),
+(40,16,18,2,135),(41,16,19,1,99),(42,16,16,1,175),
+(43,17,4,1,20),(44,17,17,3,20),
+(45,19,10,1,48),(46,19,11,1,32),(47,19,12,1,28),(48,19,13,1,160),
+(49,20,9,1,140),(50,20,13,1,160),(51,20,8,1,110),
+(52,21,4,2,20),(53,21,6,1,35),
+(54,22,16,1,175),(55,22,15,2,52),(56,22,14,1,89),
+(57,23,9,1,140),(58,23,8,1,110),
+(59,24,1,2,28),(60,24,3,1,45),(61,24,7,1,40),(62,24,17,3,20),
+(63,25,10,1,48),(64,25,11,2,32),(65,25,12,1,28),
+(66,26,16,2,175),(67,26,14,1,89),(68,26,9,1,140),
+(69,27,18,1,135),(70,27,19,1,99),(71,27,8,1,110),
+(72,28,4,1,20),(73,28,17,3,20),
+(74,29,9,1,140),(75,29,13,1,160),(76,29,4,1,20),
+(77,30,16,1,175),(78,30,15,1,52),(79,30,18,1,135);
+`;
+
+const SCHEMA = {
+  customers: {cols: [{n:'customer_id',t:'INTEGER',k:'pk'},{n:'name',t:'TEXT'},{n:'city',t:'TEXT'},{n:'signup_date',t:'DATE'}]},
+  dark_stores: {cols: [{n:'store_id',t:'INTEGER',k:'pk'},{n:'store_name',t:'TEXT'},{n:'city',t:'TEXT'}]},
+  products: {cols: [{n:'product_id',t:'INTEGER',k:'pk'},{n:'name',t:'TEXT'},{n:'category',t:'TEXT'},{n:'price',t:'REAL'},{n:'mrp',t:'REAL'}]},
+  orders: {cols: [{n:'order_id',t:'INTEGER',k:'pk'},{n:'customer_id',t:'INTEGER',k:'fk'},{n:'store_id',t:'INTEGER',k:'fk'},{n:'order_time',t:'DATETIME'},{n:'delivery_minutes',t:'INTEGER'},{n:'status',t:'TEXT'},{n:'total_amount',t:'REAL'}]},
+  order_items: {cols: [{n:'order_item_id',t:'INTEGER',k:'pk'},{n:'order_id',t:'INTEGER',k:'fk'},{n:'product_id',t:'INTEGER',k:'fk'},{n:'quantity',t:'INTEGER'},{n:'price_at_order',t:'REAL'}]}
+};
+const HINT_SCHEMA = {};
+Object.keys(SCHEMA).forEach(t => { HINT_SCHEMA[t] = SCHEMA[t].cols.map(c => c.n); });
+
+const SAMPLE_QUERIES = [
+  {label:'All columns', sql:'SELECT *\nFROM customers;'},
+  {label:'Specific columns', sql:'SELECT name, city\nFROM customers;'},
+  {label:'DISTINCT cities', sql:'SELECT DISTINCT city\nFROM customers;'},
+  {label:'WHERE filter', sql:"SELECT *\nFROM orders\nWHERE total_amount > 300;"},
+  {label:'WHERE + LIKE', sql:"SELECT *\nFROM products\nWHERE name LIKE '%Milk%';"},
+  {label:'ORDER BY', sql:'SELECT name, price\nFROM products\nORDER BY price DESC;'},
+  {label:'ORDER BY + LIMIT', sql:'SELECT order_id, total_amount\nFROM orders\nORDER BY total_amount DESC\nLIMIT 5;'},
+  {label:'Aliases', sql:'SELECT name AS product_name, price AS selling_price\nFROM products;'},
+  {label:'JOIN', sql:'SELECT o.order_id, c.name, o.total_amount\nFROM orders o\nJOIN customers c ON o.customer_id = c.customer_id\nORDER BY o.total_amount DESC\nLIMIT 5;'},
+  {label:'GROUP BY', sql:"SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price\nFROM products\nGROUP BY category\nORDER BY items DESC;"}
+];
+
+let db;
+let cm;
+let lastResult = null;
+let sortState = {col: -1, dir: 1};
+const history = [];
+
+const runBtn = document.getElementById('runBtn');
+const resetBtn = document.getElementById('resetBtn');
+const csvBtn = document.getElementById('csvBtn');
+const resultsContainer = document.getElementById('resultsContainer');
+const resultsMeta = document.getElementById('resultsMeta');
+const statusMsg = document.getElementById('statusMsg');
+const sampleQueriesEl = document.getElementById('sampleQueries');
+const schemaListEl = document.getElementById('schemaList');
+const queryLogEl = document.getElementById('queryLog');
+
+CodeMirror.defineMode('sql-manifest', function(config){
+  return CodeMirror.getMode(config, 'text/x-sql');
+});
+
+cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
+  mode: 'text/x-sql',
+  theme: 'manifest',
+  lineNumbers: false,
+  matchBrackets: true,
+  indentWithTabs: true,
+  smartIndent: true,
+  extraKeys: {
+    'Ctrl-Enter': runQuery,
+    'Cmd-Enter': runQuery,
+    'Ctrl-Space': 'autocomplete',
+    'Tab': function(cmi){ cmi.replaceSelection('  '); }
+  },
+  hintOptions: { tables: HINT_SCHEMA, completeSingle: false }
+});
+cm.setSize('100%', 'auto');
+
+cm.on('inputRead', function(cmi, change){
+  if(change.text[0] && /[a-zA-Z_.]/.test(change.text[0])){
+    CodeMirror.commands.autocomplete(cmi, null, {completeSingle:false});
+  }
+});
+
+// ---- build schema sidebar ----
+Object.keys(SCHEMA).forEach(tname => {
+  const details = document.createElement('details');
+  details.className = 'schema-table';
+  const summary = document.createElement('summary');
+
+  const left = document.createElement('span');
+  left.className = 'schema-summary-left';
+  left.innerHTML = '<span class="schema-toggle">▸</span><span class="tname">' + tname + '</span>';
+
+  const insertBtn = document.createElement('button');
+  insertBtn.className = 'insert-btn';
+  insertBtn.type = 'button';
+  insertBtn.textContent = '+ insert';
+  insertBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cm.replaceSelection(tname);
+    cm.focus();
+  });
+
+  summary.appendChild(left);
+  summary.appendChild(insertBtn);
+  details.appendChild(summary);
+
+  const cols = document.createElement('div');
+  cols.className = 'schema-cols';
+  cols.innerHTML = SCHEMA[tname].cols.map(c => {
+    const cls = c.k === 'pk' ? 'pk' : (c.k === 'fk' ? 'fk' : '');
+    return '<span class="' + cls + '">' + c.n + '</span> ' + c.t;
+  }).join('<br>');
+  details.appendChild(cols);
+
+  schemaListEl.appendChild(details);
+});
+
+// ---- sample queries ----
+SAMPLE_QUERIES.forEach((q, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'qbtn';
+  btn.innerHTML = '<span class="num">' + String(i+1).padStart(2,'0') + '</span>' + q.label;
+  btn.addEventListener('click', () => {
+    cm.setValue(q.sql);
+    cm.focus();
+  });
+  sampleQueriesEl.appendChild(btn);
+});
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderResults(res){
+  resultsContainer.innerHTML = '';
+  csvBtn.disabled = true;
+  lastResult = null;
+  if(!res || res.length === 0){
+    resultsContainer.innerHTML = '<div class="empty-msg">Query ran successfully — no rows returned.</div>';
+    resultsMeta.textContent = '';
+    return;
+  }
+  lastResult = res[0];
+  sortState = {col: -1, dir: 1};
+  csvBtn.disabled = false;
+  drawTable();
+}
+
+function drawTable(){
+  if(!lastResult) return;
+  const {columns, values} = lastResult;
+  let rows = values.slice();
+  if(sortState.col >= 0){
+    rows.sort((a,b) => {
+      const av = a[sortState.col], bv = b[sortState.col];
+      if(av === null) return 1;
+      if(bv === null) return -1;
+      if(typeof av === 'number' && typeof bv === 'number') return (av - bv) * sortState.dir;
+      return String(av).localeCompare(String(bv)) * sortState.dir;
+    });
+  }
+  resultsMeta.textContent = values.length + (values.length === 1 ? ' row' : ' rows');
+  resultsContainer.innerHTML = '';
+  const table = document.createElement('table');
+  table.className = 'results';
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  columns.forEach((c, i) => {
+    const th = document.createElement('th');
+    let arrow = '';
+    if(sortState.col === i) arrow = '<span class="arrow">' + (sortState.dir === 1 ? '▲' : '▼') + '</span>';
+    th.innerHTML = c + arrow;
+    th.addEventListener('click', () => {
+      if(sortState.col === i) sortState.dir *= -1;
+      else { sortState.col = i; sortState.dir = 1; }
+      drawTable();
+    });
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  rows.forEach(row => {
+    const tr = document.createElement('tr');
+    row.forEach(cell => {
+      const td = document.createElement('td');
+      td.textContent = cell === null ? 'NULL' : cell;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  resultsContainer.appendChild(table);
+}
+
+function addToLog(sql, ok, meta){
+  history.unshift({sql, ok, meta, time: new Date()});
+  if(history.length > 25) history.pop();
+  renderLog();
+}
+
+function renderLog(){
+  if(history.length === 0){
+    queryLogEl.innerHTML = '<p class="log-empty">Nothing run yet.</p>';
+    return;
+  }
+  queryLogEl.innerHTML = '';
+  history.forEach(entry => {
+    const btn = document.createElement('button');
+    btn.className = 'log-entry';
+    const firstLine = entry.sql.replace(/\s+/g,' ').trim();
+    btn.innerHTML =
+      '<span class="log-mark ' + (entry.ok ? 'ok' : 'err') + '"></span>' +
+      '<span style="min-width:0;"><span class="log-sql">' + escapeHtml(firstLine) + '</span><br>' +
+      '<span class="log-meta">' + entry.meta + '</span></span>';
+    btn.addEventListener('click', () => {
+      cm.setValue(entry.sql);
+      cm.focus();
+    });
+    queryLogEl.appendChild(btn);
+  });
+}
+
+function downloadCsv(){
+  if(!lastResult) return;
+  const {columns, values} = lastResult;
+  const esc = (v) => {
+    if(v === null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const lines = [columns.map(esc).join(',')].concat(values.map(row => row.map(esc).join(',')));
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'quickcart_query_results.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function explainSqlError(message, sql){
+  const tableNames = Object.keys(SCHEMA);
+  let m;
+
+  m = message.match(/no such table:\s*(\S+)/i);
+  if(m){
+    return 'There\'s no table called "' + m[1] + '" in this database. Available tables are: ' +
+      tableNames.join(', ') + '. Check the spelling, and make sure the name comes right after FROM or JOIN.';
+  }
+
+  m = message.match(/no such column:\s*(\S+)/i);
+  if(m){
+    const raw = m[1];
+    const bare = raw.includes('.') ? raw.split('.').pop() : raw;
+    const suggestions = [];
+    tableNames.forEach(t => {
+      SCHEMA[t].cols.forEach(c => {
+        if(c.n.toLowerCase() === bare.toLowerCase()) suggestions.push(t + '.' + c.n);
+      });
+    });
+    let tip = 'Column "' + raw + '" doesn\'t exist. Check the spelling against the table list on the left';
+    tip += suggestions.length
+      ? ', or did you mean ' + suggestions.join(' / ') + '?'
+      : '.';
+    tip += ' If you\'re joining tables, remember to prefix the column with its table name or alias (e.g. "o.status" instead of just "status").';
+    return tip;
+  }
+
+  m = message.match(/ambiguous column name:\s*(\S+)/i);
+  if(m){
+    return 'The column "' + m[1] + '" exists in more than one table used by this query, so SQLite doesn\'t know which one you mean. ' +
+      'Prefix it with a table name or alias, e.g. "orders.status" or "o.status".';
+  }
+
+  m = message.match(/near "?(.+?)"?:\s*syntax error/i) || message.match(/near "(.+?)"/i);
+  if(m || /syntax error/i.test(message)){
+    const word = m ? m[1] : '';
+    return 'There\'s a syntax error' + (word ? ' right around "' + word + '"' : '') +
+      '. Common causes: a missing comma between column names, a missing or extra parenthesis, a misspelled keyword, ' +
+      'or clauses in the wrong order (it should read SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY).';
+  }
+
+  if(/unrecognized token/i.test(message)){
+    return 'SQLite found a character it doesn\'t understand. Check for stray punctuation, curly/smart quotes (\u2018 \u2019 \u201c \u201d) instead of straight quotes (\' "), or a string that was never closed.';
+  }
+
+  if(/incomplete input/i.test(message)){
+    return 'Your query looks cut off — you\'re likely missing a closing parenthesis, a closing quote, or the rest of the statement after a keyword.';
+  }
+
+  if(/misuse of aggregate/i.test(message)){
+    return 'You\'re mixing an aggregate function (COUNT, SUM, AVG, MIN, MAX) with a plain column incorrectly. Every non-aggregated column you SELECT ' +
+      'also needs to appear in your GROUP BY clause.';
+  }
+
+  if(/datatype mismatch/i.test(message)){
+    return 'You\'re comparing or inserting a value of the wrong type for that column, e.g. text where a number is expected. ' +
+      'Check that values match the column types shown in the table list on the left.';
+  }
+
+  return 'Read the message above closely — it usually names the exact word SQLite stumbled on. The most common causes are: ' +
+    'a misspelled table or column name, a missing comma, unmatched quotes or parentheses, or keywords in the wrong order.';
+}
+
+function runQuery(){
+  if(!db) return;
+  const sql = cm.getValue().trim();
+  if(!sql) return;
+  const start = performance.now();
+  try{
+    const res = db.exec(sql);
+    const ms = (performance.now() - start).toFixed(1);
+    renderResults(res);
+    const rowCount = res && res[0] ? res[0].values.length : 0;
+    statusMsg.textContent = 'OK · ' + ms + ' ms';
+    statusMsg.className = 'status ok';
+    addToLog(sql, true, rowCount + ' rows · ' + ms + ' ms');
+  }catch(e){
+    resultsContainer.innerHTML =
+      '<div class="error-msg"><span class="tag">Query rejected</span><br>' + escapeHtml(e.message) +
+      '<div class="error-tip"><strong>What likely went wrong:</strong> ' + escapeHtml(explainSqlError(e.message, sql)) + '</div></div>';
+    resultsMeta.textContent = '';
+    csvBtn.disabled = true;
+    lastResult = null;
+    statusMsg.textContent = 'Error';
+    statusMsg.className = 'status err';
+    addToLog(sql, false, 'rejected');
+  }
+}
+
+function loadDatabase(){
+  db = new SQL.Database();
+  db.run(SEED_SQL);
+}
+
+runBtn.addEventListener('click', runQuery);
+csvBtn.addEventListener('click', downloadCsv);
+resetBtn.addEventListener('click', () => {
+  loadDatabase();
+  statusMsg.textContent = 'Data reset';
+  statusMsg.className = 'status ok';
+});
+
+initSqlJs({ locateFile: file => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/' + file })
+  .then(SQL => {
+    window.SQL = SQL;
+    loadDatabase();
+    document.getElementById('loadingMsg').remove();
+    resultsContainer.innerHTML = '<div class="empty-msg">Ready. Pick a sample query on the left, or write your own, then hit Run.</div>';
+    runBtn.disabled = false;
+  })
+  .catch(err => {
+    document.getElementById('loadingMsg').textContent = 'Failed to load SQLite engine: ' + err.message;
+  });
+</script>
+</body>
+</html>
